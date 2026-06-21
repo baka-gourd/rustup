@@ -29,6 +29,8 @@ const TEST_VERSION: &str = "1.1.1";
 /// Empty dist server, rustup installed with no toolchain
 async fn setup_empty_installed() -> CliTestContext {
     let cx = CliTestContext::new(Scenario::Empty).await;
+    #[cfg(windows)]
+    let guard = self_update_registry_guard();
     cx.config
         .expect([
             "rustup-init",
@@ -39,16 +41,24 @@ async fn setup_empty_installed() -> CliTestContext {
         ])
         .await
         .is_ok();
+    #[cfg(windows)]
+    let cx = cx.with_registry_guard(guard);
     cx
 }
 
-/// SimpleV3 dist server, rustup installed with default toolchain
+/// SimpleV3 dist server, rustup installed with default toolchain.
+///
+/// See [`setup_empty_installed`] for how the Windows registry guard is handled.
 async fn setup_installed() -> CliTestContext {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
         .is_ok();
+    #[cfg(windows)]
+    let cx = cx.with_registry_guard(guard);
     cx
 }
 
@@ -81,6 +91,17 @@ fn assert_programs_registry_values(cx: &CliTestContext) {
         USER_RUSTUP_VERSION.get().unwrap().unwrap(),
         Value::from(env!("CARGO_PKG_VERSION"))
     );
+}
+
+#[cfg(windows)]
+fn self_update_registry_guard() -> RegistryGuard {
+    RegistryGuard::new([
+        &USER_PATH,
+        &USER_RUSTUP_UNINSTALL_STRING,
+        &USER_RUSTUP_DISPLAY_NAME,
+        &USER_RUSTUP_VERSION,
+    ])
+    .unwrap()
 }
 
 /// This is the primary smoke test testing the full end to end behavior of the
