@@ -111,7 +111,7 @@ fn self_update_registry_guard() -> RegistryGuard {
 async fn install_bins_to_cargo_home() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
+    let _guard = self_update_registry_guard();
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -155,7 +155,7 @@ info: default toolchain set to stable-[HOST_TUPLE]
 async fn proxies_are_relative_symlinks() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
+    let _guard = self_update_registry_guard();
 
     cx.config
         .expect(["rustup-init", "-y"])
@@ -195,7 +195,7 @@ info: default toolchain set to stable-[HOST_TUPLE]
 async fn install_twice() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
     #[cfg(windows)]
-    let _path_guard = RegistryGuard::new([&USER_PATH]).unwrap();
+    let _guard = self_update_registry_guard();
 
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
     cx.config.expect(["rustup-init", "-y"]).await.is_ok();
@@ -256,6 +256,8 @@ async fn install_writes_programs_with_path() {
 #[tokio::test]
 async fn install_creates_cargo_home() {
     let cx = CliTestContext::new(Scenario::Empty).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     remove_dir_all(&cx.config.cargodir).unwrap();
     cx.config.rustupdir.remove().unwrap();
     cx.config
@@ -414,15 +416,20 @@ warn: keeping non-empty cargo bin directory `[..]`
 #[cfg(windows)]
 #[tokio::test]
 async fn uninstall_removes_programs_with_no_modify_path() {
-    let _guard = RegistryGuard::new([
-        &USER_RUSTUP_UNINSTALL_STRING,
-        &USER_RUSTUP_DISPLAY_NAME,
-        &USER_RUSTUP_VERSION,
-    ])
-    .unwrap();
+    let cx = CliTestContext::new(Scenario::Empty).await;
+    let _guard = self_update_registry_guard();
     clear_programs_registry_values();
 
-    let cx = setup_empty_installed().await;
+    cx.config
+        .expect([
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ])
+        .await
+        .is_ok();
 
     assert_programs_registry_values(&cx);
 
@@ -549,6 +556,8 @@ struct GcErr(Vec<String>);
 #[tokio::test]
 async fn update_exact() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -573,6 +582,8 @@ info: downloading self-update (new version: [TEST_VERSION])
 #[tokio::test]
 async fn update_precise() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -604,12 +615,7 @@ async fn update_overwrites_programs_display_version() {
     let version = env!("CARGO_PKG_VERSION");
 
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
-    let _guard = RegistryGuard::new([
-        &USER_RUSTUP_UNINSTALL_STRING,
-        &USER_RUSTUP_DISPLAY_NAME,
-        &USER_RUSTUP_VERSION,
-    ])
-    .unwrap();
+    let _guard = self_update_registry_guard();
     clear_programs_registry_values();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
@@ -662,6 +668,8 @@ error: rustup is not installed at '[CARGO_DIR]'
 #[tokio::test]
 async fn update_but_delete_existing_updater_first() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     // The updater is stored in a known location
     let setup = cx
         .config
@@ -688,6 +696,8 @@ async fn update_but_delete_existing_updater_first() {
 #[tokio::test]
 async fn update_download_404() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -713,6 +723,8 @@ error: could not download file from '[..]' to '[..]': file not found
 #[tokio::test]
 async fn update_bogus_version() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -734,6 +746,8 @@ error: invalid value '1.0.0-alpha' for '[TOOLCHAIN]...': invalid toolchain name:
 #[tokio::test]
 async fn update_updates_rustup_bin() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(&["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -762,6 +776,8 @@ async fn update_updates_rustup_bin() {
 #[tokio::test]
 async fn update_bad_schema() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -784,6 +800,8 @@ unknown variant [..]
 async fn update_no_change() {
     let version = env!("CARGO_PKG_VERSION");
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -807,6 +825,8 @@ info: checking for self-update (current version: [CURRENT_VERSION])
 #[tokio::test]
 async fn rustup_self_updates_trivial() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup", "set", "auto-self-update", "enable"])
         .await
@@ -829,6 +849,8 @@ async fn rustup_self_updates_trivial() {
 #[tokio::test]
 async fn rustup_self_updates_with_specified_toolchain() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup", "set", "auto-self-update", "enable"])
         .await
@@ -854,6 +876,8 @@ async fn rustup_self_updates_with_specified_toolchain() {
 #[tokio::test]
 async fn rustup_no_self_update_with_specified_toolchain() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -875,6 +899,8 @@ async fn rustup_no_self_update_with_specified_toolchain() {
 #[tokio::test]
 async fn rustup_self_update_exact() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup", "set", "auto-self-update", "enable"])
         .await
@@ -909,6 +935,8 @@ info: cleaning up downloads & tmp directories
 #[tokio::test]
 async fn updater_leaves_itself_for_later_deletion() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -929,6 +957,8 @@ async fn updater_leaves_itself_for_later_deletion() {
 #[tokio::test]
 async fn updater_is_deleted_after_running_rustup() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -954,6 +984,8 @@ async fn updater_is_deleted_after_running_rustup() {
 #[tokio::test]
 async fn updater_is_deleted_after_running_rustc() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -976,6 +1008,8 @@ async fn updater_is_deleted_after_running_rustc() {
 #[tokio::test]
 async fn rustup_still_works_after_update() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -1012,6 +1046,8 @@ async fn rustup_still_works_after_update() {
 #[tokio::test]
 async fn as_rustup_setup() {
     let cx = CliTestContext::new(Scenario::Empty).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     let init = cx.config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
     let setup = cx.config.exedir.join(format!("rustup-setup{EXE_SUFFIX}"));
     fs::copy(init, setup).unwrap();
@@ -1091,6 +1127,8 @@ async fn reinstall_specifying_component() {
 #[tokio::test]
 async fn reinstall_specifying_different_toolchain() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect([
             "rustup-init",
@@ -1110,6 +1148,8 @@ info: default toolchain set to nightly-[HOST_TUPLE]
 #[tokio::test]
 async fn install_sets_up_stable_unless_a_different_default_is_requested() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect([
             "rustup-init",
@@ -1182,6 +1222,8 @@ error: unable to read from stdin for confirmation[..]
 async fn rustup_init_works_with_weird_names() {
     // Browsers often rename bins to e.g. rustup-init(2).exe.
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     let old = cx.config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
     let new = cx.config.exedir.join(format!("rustup-init(2){EXE_SUFFIX}"));
     fs::rename(old, new).unwrap();
@@ -1196,6 +1238,8 @@ async fn rustup_init_works_with_weird_names() {
 #[tokio::test]
 async fn rls_proxy_set_up_after_install() {
     let mut cx = CliTestContext::new(Scenario::None).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
 
     {
         let cx = cx.with_dist_dir(Scenario::SimpleV2);
@@ -1224,6 +1268,8 @@ help: run `rustup component add rls` to install it
 #[tokio::test]
 async fn rls_proxy_set_up_after_update() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     let rls_path = cx.config.cargodir.join(format!("bin/rls{EXE_SUFFIX}"));
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
@@ -1237,6 +1283,8 @@ async fn rls_proxy_set_up_after_update() {
 #[tokio::test]
 async fn update_does_not_overwrite_rustfmt() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -1285,6 +1333,8 @@ warn: tool `rustfmt` is already installed, remove it from `[..]`, then run `rust
 #[tokio::test]
 async fn update_installs_clippy_cargo_and() {
     let cx = SelfUpdateTestContext::new(TEST_VERSION).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect(["rustup-init", "-y", "--no-modify-path"])
         .await
@@ -1302,6 +1352,8 @@ async fn update_installs_clippy_cargo_and() {
 #[tokio::test]
 async fn install_with_components_and_targets() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect([
             "rustup-init",
@@ -1339,6 +1391,8 @@ rls-[HOST_TUPLE] (installed)
 #[tokio::test]
 async fn install_minimal_profile() {
     let cx = CliTestContext::new(Scenario::SimpleV2).await;
+    #[cfg(windows)]
+    let _guard = self_update_registry_guard();
     cx.config
         .expect([
             "rustup-init",
