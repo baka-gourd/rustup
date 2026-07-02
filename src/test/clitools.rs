@@ -911,7 +911,7 @@ pub struct SelfUpdateTestContext {
     pub config: Config,
     _test_dir: TempDir,
     #[cfg(windows)]
-    _registry_guard: Option<crate::cli::self_update::RegistryGuard>,
+    _registry_guard: crate::cli::self_update::RegistryGuard,
     self_dist_tmp: TempDir,
 }
 
@@ -965,7 +965,7 @@ pub struct CliTestContext {
     pub config: Config,
     _test_dir: TempDir,
     #[cfg(windows)]
-    _registry_guard: Option<crate::cli::self_update::RegistryGuard>,
+    _registry_guard: crate::cli::self_update::RegistryGuard,
 }
 
 impl CliTestContext {
@@ -997,7 +997,7 @@ impl CliTestContext {
                 crate::cli::self_update::RegistryGuard::new([&crate::cli::self_update::USER_PATH])
                     .unwrap();
             config.set_registry_uuid(&guard.uuid);
-            Some(guard)
+            guard
         };
 
         Self {
@@ -1006,16 +1006,6 @@ impl CliTestContext {
             #[cfg(windows)]
             _registry_guard: registry_guard,
         }
-    }
-
-    #[cfg(windows)]
-    pub fn guard_registry(
-        &mut self,
-        ids: impl IntoIterator<Item = &'static crate::cli::self_update::RegistryValueId>,
-    ) {
-        let guard = crate::cli::self_update::RegistryGuard::new(ids).unwrap();
-        self.config.set_registry_uuid(&guard.uuid);
-        self._registry_guard = Some(guard);
     }
 
     /// Run a rustup command until it reaches `checkpoint` and terminate it.
