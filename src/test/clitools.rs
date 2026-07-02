@@ -910,6 +910,8 @@ async fn setup_test_state(test_dist_dir: TempDir) -> (TempDir, Config) {
 pub struct SelfUpdateTestContext {
     pub config: Config,
     _test_dir: TempDir,
+    #[cfg(windows)]
+    _registry_guard: Option<crate::cli::self_update::RegistryGuard>,
     self_dist_tmp: TempDir,
 }
 
@@ -948,6 +950,8 @@ impl SelfUpdateTestContext {
         Self {
             config: cx.config,
             _test_dir: cx._test_dir,
+            #[cfg(windows)]
+            _registry_guard: cx._registry_guard,
             self_dist_tmp,
         }
     }
