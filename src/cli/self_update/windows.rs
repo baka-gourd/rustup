@@ -812,8 +812,8 @@ impl RegistryGuard {
 impl Drop for RegistryGuard {
     fn drop(&mut self) {
         let root = format!(
-            r"Software\Microsoft\Windows\CurrentVersion\Uninstall\RustupTest-{}",
-            self.uuid
+            r"Software\Microsoft\Windows\CurrentVersion\Uninstall\RustupTest-{uuid}",
+            uuid = self.uuid
         );
         match CURRENT_USER.remove_tree(&root) {
             Ok(()) => {}
